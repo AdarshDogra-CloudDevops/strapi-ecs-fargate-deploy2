@@ -21,6 +21,10 @@ resource "aws_ecs_service" "strapi" {
     container_port   = 1337
   }
 
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
+
   depends_on = [
     aws_lb_listener.http,
     aws_lb_target_group.blue
