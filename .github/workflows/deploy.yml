@@ -62,6 +62,8 @@ jobs:
             --query "taskDefinitionArns[0]" \
             --output text)
 
+          echo "Latest task definition ARN: $TASK_DEF_ARN"
+
           TASK_DEF_JSON=$(aws ecs describe-task-definition \
             --task-definition "$TASK_DEF_ARN" \
             --query "taskDefinition" \
