@@ -62,13 +62,9 @@ jobs:
             --query "taskDefinitionArns[0]" \
             --output text)
 
-          if [ -z "$TASK_DEF_ARN" ] || [[ "$TASK_DEF_ARN" == "None" ]]; then
-            echo "❌ Error: No valid task definition found for family $FAMILY"
-            exit 1
-          fi
-
           echo "Latest task definition ARN: $TASK_DEF_ARN"
 
+          # Describe and clean JSON
           TASK_DEF_JSON=$(aws ecs describe-task-definition \
             --task-definition "$TASK_DEF_ARN" \
             --query "taskDefinition" \
@@ -84,17 +80,13 @@ jobs:
             .registeredBy
           )')
 
+          echo "$CLEANED_JSON" > cleaned-task-def.json
+
           NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
-            --cli-input-json "$CLEANED_JSON" \
+            --cli-input-json file://cleaned-task-def.json \
             --query "taskDefinition.taskDefinitionArn" \
             --output text)
 
-          if [ -z "$NEW_TASK_DEF_ARN" ] || [[ "$NEW_TASK_DEF_ARN" == "None" ]]; then
-            echo "❌ Error: Failed to register new task definition"
-            exit 1
-          fi
-
-          echo "✅ New task definition ARN: $NEW_TASK_DEF_ARN"
           echo "TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
       - name: Prepare AppSpec file
