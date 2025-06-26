@@ -8,6 +8,7 @@ on:
 env:
   DOCKER_IMAGE: adarshdogra1122/strapi-app
   AWS_REGION: eu-north-1
+  FAMILY: strapi-ecs-task
 
 jobs:
   build-push-deploy:
@@ -50,18 +51,12 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -var="image_tag=${{ github.sha }}" -var-file="terraform.tfvars"
 
-      - name: Register new task definition
+      - name: Register new ECS task definition
         run: |
-          FAMILY="${{ secrets.ECS_TASK_FAMILY }}"
-          TASK_DEF_ARN=$(aws ecs list-task-definitions \
-            --family-prefix $FAMILY \
-            --sort DESC \
-            --max-items 1 \
-            --query "taskDefinitionArns[0]" \
-            --output text)
+          echo "Registering new task definition for family: $FAMILY"
 
           TASK_DEF_JSON=$(aws ecs describe-task-definition \
-            --task-definition $TASK_DEF_ARN \
+            --task-definition "$FAMILY" \
             --query "taskDefinition" \
             --output json)
 
@@ -70,17 +65,20 @@ jobs:
             --query "taskDefinition.taskDefinitionArn" \
             --output text)
 
+          echo "New task definition ARN: $NEW_TASK_DEF_ARN"
           echo "TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
       - name: Prepare AppSpec file
         run: |
-          sed "s|<TASK_DEFINITION_PLACEHOLDER>|${TASK_DEF_ARN}|" appspec.yaml > final-appspec.yaml
+          sed "s|<TASK_DEFINITION_PLACEHOLDER>|${{ env.TASK_DEF_ARN }}|" appspec.yaml > final-appspec.yaml
 
       - name: Create CodeDeploy deployment
         run: |
+          DEPLOY_CONTENT=$(base64 -w 0 final-appspec.yaml || base64 final-appspec.yaml)
+
           aws deploy create-deployment \
             --application-name strapi-codedeploy-app \
             --deployment-group-name strapi-deploy-group \
-            --revision revisionType=AppSpecContent,appSpecContent="{\"content\":\"$(base64 -w 0 final-appspec.yaml)\"}" \
+            --revision revisionType=AppSpecContent,appSpecContent="{\"content\":\"$DEPLOY_CONTENT\"}" \
             --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
             --description "GitHub Actions Deployment - ${{ github.sha }}"
