@@ -4,13 +4,13 @@ resource "aws_codedeploy_app" "strapi" {
 }
 
 resource "aws_codedeploy_deployment_group" "strapi" {
-  app_name               = aws_codedeploy_app.strapi.name
-  deployment_group_name  = "strapi-deploy-group"
-  service_role_arn       = aws_iam_role.codedeploy_role.arn
+  app_name              = aws_codedeploy_app.strapi.name
+  deployment_group_name = "strapi-deploy-group"
+  service_role_arn      = "arn:aws:iam::458854656281:role/codedeploy-strapi-role"
   deployment_config_name = "CodeDeployDefault.ECSAllAtOnce"
 
   deployment_style {
-    deployment_type  = "BLUE_GREEN"
+    deployment_type   = "BLUE_GREEN"
     deployment_option = "WITH_TRAFFIC_CONTROL"
   }
 
@@ -26,8 +26,8 @@ resource "aws_codedeploy_deployment_group" "strapi" {
   }
 
   ecs_service {
-    cluster_name = "strapi-ecs-cluster"     # use actual cluster name
-    service_name = "strapi-ecs-service"     # use actual service name
+    cluster_name = "strapi-ecs-cluster"
+    service_name = "strapi-ecs-service"
   }
 
   load_balancer_info {
@@ -49,7 +49,6 @@ resource "aws_codedeploy_deployment_group" "strapi" {
   depends_on = [
     aws_lb_target_group.blue,
     aws_lb_target_group.green,
-    aws_lb_listener.http,
-    aws_iam_role.codedeploy_role
+    aws_lb_listener.http
   ]
 }

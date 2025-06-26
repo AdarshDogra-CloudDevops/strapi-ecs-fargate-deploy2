@@ -51,52 +51,5 @@ resource "aws_iam_role_policy_attachment" "attach_cloudwatch_logs_policy" {
   role       = aws_iam_role.ecs_task_execution_role.name
   policy_arn = aws_iam_policy.ecs_cloudwatch_logs_policy.arn
 }
-resource "aws_iam_role" "codedeploy_role" {
-  name = "codedeploy-strapi-role"
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Principal = {
-          Service = "codedeploy.amazonaws.com"
-        },
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
-}
 
-resource "aws_iam_role_policy_attachment" "codedeploy_policy_attach" {
-  role       = aws_iam_role.codedeploy_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSCodeDeployRole"
-}
-resource "aws_iam_policy" "codedeploy_ecs_permissions" {
-  name = "${var.project_name}-codedeploy-ecs-access"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Action = [
-          "ecs:DescribeServices",
-          "ecs:DescribeTaskDefinition",
-          "ecs:UpdateService",
-          "elasticloadbalancing:DescribeTargetGroups",
-          "elasticloadbalancing:DescribeListeners",
-          "elasticloadbalancing:ModifyListener",
-          "elasticloadbalancing:DescribeRules",
-          "elasticloadbalancing:ModifyRule"
-        ],
-        Resource = "*"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "codedeploy_ecs_custom_policy" {
-  role       = aws_iam_role.codedeploy_role.name
-  policy_arn = aws_iam_policy.codedeploy_ecs_permissions.arn
-}
