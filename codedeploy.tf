@@ -4,9 +4,9 @@ resource "aws_codedeploy_app" "strapi" {
 }
 
 resource "aws_codedeploy_deployment_group" "strapi" {
-  app_name              = aws_codedeploy_app.strapi.name
-  deployment_group_name = "strapi-deploy-group"
-  service_role_arn      = "arn:aws:iam::458854656281:role/codedeploy-strapi-role"
+  app_name               = aws_codedeploy_app.strapi.name
+  deployment_group_name  = "strapi-deploy-group"
+  service_role_arn       = "arn:aws:iam::458854656281:role/codedeploy-strapi-role"
   deployment_config_name = "CodeDeployDefault.ECSAllAtOnce"
 
   deployment_style {
@@ -16,7 +16,7 @@ resource "aws_codedeploy_deployment_group" "strapi" {
 
   blue_green_deployment_config {
     terminate_blue_instances_on_deployment_success {
-      action                         = "TERMINATE"
+      action                          = "TERMINATE"
       termination_wait_time_in_minutes = 5
     }
 
@@ -47,6 +47,7 @@ resource "aws_codedeploy_deployment_group" "strapi" {
   }
 
   depends_on = [
+    aws_ecs_service.strapi,                # ✅ Add this!
     aws_lb_target_group.blue,
     aws_lb_target_group.green,
     aws_lb_listener.http
