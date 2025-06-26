@@ -50,27 +50,32 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -var="image_tag=${{ github.sha }}" -var-file="terraform.tfvars"
 
-      # ✅ Register ECS task definition again (gets new revision ARN)
       - name: Register new task definition
         run: |
+          FAMILY="${{ secrets.ECS_TASK_FAMILY }}"
+          TASK_DEF_ARN=$(aws ecs list-task-definitions \
+            --family-prefix $FAMILY \
+            --sort DESC \
+            --max-items 1 \
+            --query "taskDefinitionArns[0]" \
+            --output text)
+
           TASK_DEF_JSON=$(aws ecs describe-task-definition \
-            --task-definition "${{ secrets.ECS_TASK_FAMILY }}" \
+            --task-definition $TASK_DEF_ARN \
             --query "taskDefinition" \
             --output json)
 
-          TASK_DEF_ARN=$(aws ecs register-task-definition \
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
             --cli-input-json "$TASK_DEF_JSON" \
             --query "taskDefinition.taskDefinitionArn" \
             --output text)
 
-          echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
+          echo "TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
-      # ✅ Inject new ARN into appspec.yaml
       - name: Prepare AppSpec file
         run: |
-          sed "s|<TASK_DEFINITION_PLACEHOLDER>|$TASK_DEF_ARN|" appspec.yaml > final-appspec.yaml
+          sed "s|<TASK_DEFINITION_PLACEHOLDER>|${TASK_DEF_ARN}|" appspec.yaml > final-appspec.yaml
 
-      # ✅ Trigger AWS CodeDeploy
       - name: Create CodeDeploy deployment
         run: |
           aws deploy create-deployment \
@@ -79,4 +84,3 @@ jobs:
             --revision revisionType=AppSpecContent,appSpecContent="{\"content\":\"$(base64 -w 0 final-appspec.yaml)\"}" \
             --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
             --description "GitHub Actions Deployment - ${{ github.sha }}"
-
