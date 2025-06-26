@@ -55,13 +55,31 @@ jobs:
         run: |
           echo "Registering new task definition for family: $FAMILY"
 
+          TASK_DEF_ARN=$(aws ecs list-task-definitions \
+            --family-prefix "$FAMILY" \
+            --sort DESC \
+            --max-items 1 \
+            --query "taskDefinitionArns[0]" \
+            --output text)
+
           TASK_DEF_JSON=$(aws ecs describe-task-definition \
-            --task-definition "$FAMILY" \
+            --task-definition "$TASK_DEF_ARN" \
             --query "taskDefinition" \
             --output json)
 
+          # Remove read-only and unsupported fields before registering new task definition
+          CLEANED_JSON=$(echo "$TASK_DEF_JSON" | jq 'del(
+            .taskDefinitionArn,
+            .revision,
+            .status,
+            .requiresAttributes,
+            .compatibilities,
+            .registeredAt,
+            .registeredBy
+          )')
+
           NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
-            --cli-input-json "$TASK_DEF_JSON" \
+            --cli-input-json "$CLEANED_JSON" \
             --query "taskDefinition.taskDefinitionArn" \
             --output text)
 
