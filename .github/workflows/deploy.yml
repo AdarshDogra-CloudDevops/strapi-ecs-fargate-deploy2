@@ -97,16 +97,16 @@ jobs:
         run: source $GITHUB_ENV
 
       - name: Prepare AppSpec file
-        run: |
-          sed "s|<TASK_DEFINITION_PLACEHOLDER>|$TASK_DEF_ARN|" appspec.yaml > final-appspec.yaml
+  run: |
+    sed "s|<TASK_DEFINITION_PLACEHOLDER>|$NEW_TASK_DEF_ARN|" appspec.yaml > final-appspec.yaml
 
-      - name: Create CodeDeploy deployment
-        run: |
-          DEPLOY_CONTENT=$(base64 -w 0 final-appspec.yaml || base64 final-appspec.yaml)
+- name: Create CodeDeploy deployment
+  run: |
+    DEPLOY_CONTENT=$(base64 -w 0 final-appspec.yaml || base64 final-appspec.yaml)
+    aws deploy create-deployment \
+      --application-name strapi-codedeploy-app \
+      --deployment-group-name strapi-deploy-group \
+      --revision revisionType=AppSpecContent,appSpecContent="{\"content\":\"$DEPLOY_CONTENT\"}" \
+      --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
+      --description "GitHub Actions Deployment - ${{ github.sha }}"
 
-          aws deploy create-deployment \
-            --application-name strapi-codedeploy-app \
-            --deployment-group-name strapi-deploy-group \
-            --revision revisionType=AppSpecContent,appSpecContent="{\"content\":\"$DEPLOY_CONTENT\"}" \
-            --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
-            --description "GitHub Actions Deployment - ${{ github.sha }}"
