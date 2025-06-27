@@ -66,7 +66,7 @@ jobs:
 
       - name: Create CodeDeploy deployment
         run: |
-          DEPLOY_CONTENT=$(base64 final-appspec.yaml)
+          DEPLOY_CONTENT=$(base64 -w 0 final-appspec.yaml)
 
           echo '{
             "revisionType": "AppSpecContent",
