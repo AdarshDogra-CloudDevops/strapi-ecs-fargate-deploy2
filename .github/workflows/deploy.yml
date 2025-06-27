@@ -72,10 +72,22 @@ jobs:
 
       - name: Create CodeDeploy deployment
         run: |
+          # Base64 encode the appspec
+          DEPLOY_CONTENT=$(base64 -w 0 final-appspec.yaml || base64 final-appspec.yaml)
+
+          # Create a valid JSON file
+          echo '{
+         "revisionType": "AppSpecContent",
+         "appSpecContent": {
+         "content": "'"$DEPLOY_CONTENT"'"
+         }
+          }' > revision.json
+
+          # Now call CodeDeploy using the revision file
           aws deploy create-deployment \
           --application-name strapi-codedeploy-app \
           --deployment-group-name strapi-deploy-group \
-          --revision "revisionType=AppSpecContent,appSpecContent=$(cat appspec-content.json)" \
+          --revision file://revision.json \
           --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
           --description "GitHub Actions Deployment - ${{ github.sha }}"
 
