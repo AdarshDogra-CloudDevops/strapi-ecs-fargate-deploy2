@@ -65,12 +65,17 @@ jobs:
         run: |
           sed "s|<TASK_DEFINITION_PLACEHOLDER>|$TASK_DEF_ARN|" appspec.yaml > final-appspec.yaml
 
-      - name: Create CodeDeploy deployment
+      - name: Create AppSpec JSON payload
         run: |
           DEPLOY_CONTENT=$(base64 -w 0 final-appspec.yaml || base64 final-appspec.yaml)
+          echo "{\"content\":\"$DEPLOY_CONTENT\"}" > appspec-content.json
+
+      - name: Create CodeDeploy deployment
+        run: |
           aws deploy create-deployment \
-            --application-name strapi-codedeploy-app \
-            --deployment-group-name strapi-deploy-group \
-            --revision revisionType=AppSpecContent,appSpecContent="{\"content\":\"$DEPLOY_CONTENT\"}" \
-            --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
-            --description "GitHub Actions Deployment - ${{ github.sha }}"
+          --application-name strapi-codedeploy-app \
+          --deployment-group-name strapi-deploy-group \
+          --revision "revisionType=AppSpecContent,appSpecContent=$(cat appspec-content.json)" \
+          --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
+          --description "GitHub Actions Deployment - ${{ github.sha }}"
+
