@@ -63,8 +63,8 @@ jobs:
             --query "taskDefinitionArns[0]" \
             --output text)
 
-          if [[ "$TASK_DEF_ARN" == "None" || -z "$TASK_DEF_ARN" ]]; then
-            echo "❌ ERROR: Task definition ARN is empty or None"
+          if [ "$TASK_DEF_ARN" = "None" ] || [ -z "$TASK_DEF_ARN" ]; then
+            echo "❌ ERROR: Task definition ARN is empty or invalid"
             exit 1
           fi
 
@@ -93,16 +93,13 @@ jobs:
           echo "✅ Registered new task definition: $NEW_TASK_DEF_ARN"
           echo "TASK_DEF_ARN=$NEW_TASK_DEF_ARN" >> $GITHUB_ENV
 
-      - name: Load dynamic environment variables
-        run: source $GITHUB_ENV
-
-      - name: Prepare AppSpec file
+      - name: Prepare final AppSpec
         run: |
           sed "s|<TASK_DEFINITION_PLACEHOLDER>|$TASK_DEF_ARN|" appspec.yaml > final-appspec.yaml
 
       - name: Create CodeDeploy deployment
         run: |
-          DEPLOY_CONTENT=$(base64 -w 0 final-appspec.yaml || base64 final-appspec.yaml)
+          DEPLOY_CONTENT=$(base64 final-appspec.yaml)
 
           echo '{
             "revisionType": "AppSpecContent",
@@ -117,3 +114,4 @@ jobs:
             --revision file://revision.json \
             --deployment-config-name CodeDeployDefault.ECSAllAtOnce \
             --description "GitHub Actions Deployment - ${{ github.sha }}"
+
